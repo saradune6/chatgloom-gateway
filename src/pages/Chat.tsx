@@ -93,6 +93,13 @@ const Chat = () => {
     const currentMessage = message;
     setMessage('');
 
+    // Add user message to the UI immediately
+    const newMessage: Message = {
+      content: currentMessage,
+      type: 'human'
+    };
+    setMessages(prev => [...prev, newMessage]);
+
     try {
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
@@ -100,7 +107,7 @@ const Chat = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: currentMessage, // Changed from query to message
+          message: currentMessage,
           user_id: 'NA',
           request_id: uuidv4(),
           session_id: sessionId,
@@ -108,7 +115,8 @@ const Chat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send message');
       }
 
       const data = await response.json();
@@ -121,6 +129,8 @@ const Chat = () => {
         description: error.message,
         variant: "destructive",
       });
+      // Remove the user message if the request failed
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
