@@ -38,6 +38,8 @@ const Chat = () => {
 
   useEffect(() => {
     fetchConversations();
+    fetchMessages(sessionId);
+    
     const subscription = supabase
       .channel('messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
@@ -134,15 +136,13 @@ const Chat = () => {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Convert the chunk to text and parse JSON
         const chunk = new TextDecoder().decode(value);
         const lines = chunk.split('\n').filter(line => line.trim());
         
         for (const line of lines) {
           try {
             const jsonData = JSON.parse(line);
-            if (jsonData.content) {
-              // Update the last message (AI response)
+            if (jsonData.content && !jsonData.content.includes('<think>') && !jsonData.content.includes('</think>')) {
               setMessages(prev => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
@@ -163,7 +163,7 @@ const Chat = () => {
         description: error.message,
         variant: "destructive",
       });
-      // Remove the user message if the request failed
+      // Remove the last message if the request failed
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
@@ -191,7 +191,9 @@ const Chat = () => {
       return;
     }
 
-    setMessages(data.map(row => row.message));
+    if (data) {
+      setMessages(data.map(row => row.message));
+    }
   };
 
   return (
