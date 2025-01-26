@@ -134,18 +134,28 @@ const Chat = () => {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Convert the chunk to text
+        // Convert the chunk to text and parse JSON
         const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
         
-        // Update the last message (AI response)
-        setMessages(prev => {
-          const newMessages = [...prev];
-          const lastMessage = newMessages[newMessages.length - 1];
-          if (lastMessage.type === 'ai') {
-            lastMessage.content += chunk;
+        for (const line of lines) {
+          try {
+            const jsonData = JSON.parse(line);
+            if (jsonData.content) {
+              // Update the last message (AI response)
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage.type === 'ai') {
+                  lastMessage.content += jsonData.content;
+                }
+                return newMessages;
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing JSON:', e);
           }
-          return newMessages;
-        });
+        }
       }
     } catch (error: any) {
       toast({
