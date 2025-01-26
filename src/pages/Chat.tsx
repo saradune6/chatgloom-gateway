@@ -115,13 +115,37 @@ const Chat = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to send message');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error('Request failed');
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No reader available');
+      }
+
+      // Add AI message placeholder
+      const aiMessage: Message = {
+        content: '',
+        type: 'ai'
+      };
+      setMessages(prev => [...prev, aiMessage]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Convert the chunk to text
+        const chunk = new TextDecoder().decode(value);
+        
+        // Update the last message (AI response)
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage.type === 'ai') {
+            lastMessage.content += chunk;
+          }
+          return newMessages;
+        });
       }
     } catch (error: any) {
       toast({
