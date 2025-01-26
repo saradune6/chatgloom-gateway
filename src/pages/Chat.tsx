@@ -100,7 +100,7 @@ const Chat = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: currentMessage,
+          message: currentMessage, // Changed from query to message
           user_id: 'NA',
           request_id: uuidv4(),
           session_id: sessionId,
